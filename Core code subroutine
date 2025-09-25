@@ -1,0 +1,527 @@
+#include "zf_common_headfile.h"  
+/*所有需要用的库放上面*/  
+int cnt=5;                                  // 一页菜单数  
+int HIGH[100];                              // 实时档数据  
+int high[100];                              // 存在扇区的档  
+int MEDIUM[100];                            // 实时档数据  
+int medium[100];                            // 存在扇区的档  
+int LOW[100];                               // 实时档数据  
+int low[100];                               // 存在扇区的档  
+int DAta[100];                              // 存在扇区里的数据  
+char* data_name[20]={"speed","s_bend_kp","gps_kp","s_bend_kd",  
+        "gps_kd","gps_distance","start_angle","cycle",  
+        "s_bend","Front","servo_kp","gps_start",  
+        "gps_end","servo_kd","count_num","shift_speed",  
+        "whirl_speed","s_bend_speed","coefficient","highThr"};  
+int data_small[100];                        // 当前数据  
+int GPS_spot[300];                          // GPS所有存的点  
+menu *son1=NULL;  
+menu *son2=NULL;  
+menu *son3=NULL;  
+menu *son4=NULL;  
+menu *son5=NULL;  
+menu *son6=NULL;  
+menu *son7=NULL;  
+menu *son8=NULL;  
+menu *son9=NULL;  
+menu *son10=NULL;  
+menu *son11=NULL;  
+menu *son13=NULL;  
+menu *son14=NULL;  
+menu *son15=NULL;  
+menu *son16=NULL;  
+menu *son19=NULL;  
+menu *son20=NULL;  
+menu *son21=NULL;  
+menu *son22=NULL;  
+menu *son23=NULL;  
+menu *son24=NULL;  
+/*所有定义的全局变量放这里*/  
+  
+  
+  
+void renew()//读取之后更新参数  
+{  
+    son1->data=data_small[0];  
+    son2->data=data_small[1];  
+    son3->data=data_small[2];  
+    son4->data=data_small[3];  
+    son5->data=data_small[4];  
+    son6->data=data_small[5];  
+    son7->data=data_small[6];  
+    son8->data=data_small[7];  
+    son9->data=data_small[8];  
+    son10->data=data_small[9];  
+    son13->data=data_small[10];  
+    son14->data=data_small[11];  
+    son15->data=data_small[12];  
+    son16->data=data_small[13];  
+    son19->data=data_small[14];  
+    son20->data=data_small[15];  
+    son21->data=data_small[16];  
+    son22->data=data_small[17];  
+    son23->data=data_small[18];  
+    son24->data=data_small[19];  
+}  
+  
+menu* make_node(menu* father,char NAME[],int DATA,int TYPE)//插入节点函数，插入为子菜单的最后一栏  
+{  
+  
+    menu *ans=(menu *)malloc(sizeof(menu));  
+    ans->data=DATA;  
+    ans->name=NAME;  
+    if (father->son!=NULL)  
+    {  
+        menu *tmp=father->son;  
+        tmp->maxn++;  
+        menu* pp=father->son;  
+        while (tmp->next!=pp)  
+        {  
+            tmp=tmp->next;  
+            tmp->maxn++;  
+        }  
+        tmp->next=ans;  
+        ans->locy=tmp->locy+1;  
+        ans->next=father->son;  
+        ans->last=tmp;  
+        ans->parent=father;  
+        ans->maxn=tmp->maxn;  
+        pp->last=ans;  
+    }  
+    else  
+    {  
+        father->son=ans;  
+        ans->locy=1;  
+        ans->maxn=1;  
+        ans->parent=father;  
+        ans->next=ans;  
+        ans->last=ans;  
+    }  
+    ans->son=NULL;  
+    ans->type=TYPE;  
+    return ans;  
+}  
+  
+void read(menu* cur)//读入函数，用扇区里的档数据全部替换当前数据  
+{  
+    char* nam=cur->name;  
+    int i;  
+    if (strcmp(nam,"high_read")==0)  
+    {  
+        for (i=0;i<100;i++)  
+        {  
+            data_small[i]=HIGH[i];//这里write和read相反  
+        }  
+    }  
+    else if (strcmp(nam,"medium_read")==0)  
+    {  
+        for (i=0;i<100;i++)  
+        {  
+            data_small[i]=MEDIUM[i];  
+        }  
+    }  
+    else if (strcmp(nam,"low_read")==0)  
+    {  
+        for (i=0;i<100;i++)  
+        {  
+            data_small[i]=LOW[i];  
+        }  
+    }  
+    oled_show_string(0, 7, "nice");//表示操作成功  
+}  
+  
+void write(menu* cur)//写入函数，将当前数据全部写入扇区  
+{  
+   char* nam=cur->name;  
+   int i;  
+   if (strcmp(nam,"high_write")==0)  
+   {  
+       for (i=0;i<100;i++)  
+       {  
+           HIGH[i]=data_small[i];  
+       }  
+   }  
+   else if (strcmp(nam,"medium_write")==0)  
+   {  
+       for (i=0;i<100;i++)  
+       {  
+           MEDIUM[i]=data_small[i];  
+       }  
+   }  
+   else if (strcmp(nam,"low_write")==0)  
+   {  
+       for (i=0;i<100;i++)  
+       {  
+           LOW[i]=data_small[i];  
+       }  
+   }  
+   oled_show_string(0, 7, "nice");//表示操作成功  
+}  
+  
+void print_data(menu* cc,int rate,int type)//按位调参的显示  
+{  
+    oled_clear();//清屏  
+    system_delay_ms(200);  
+    if (type==1)//整形显示  
+    {  
+        oled_show_uint(0, 2, cc->data, 10);//SmartCar_OLED_Printf6x8(0, 2, "%6d", cc->data);  
+        if(rate==10000000000)  
+        {  
+            oled_show_string(0, 3, "_  ");  
+        }  
+        else if (rate==1000000000)  
+        {  
+            oled_show_string(0, 3, " _  ");  
+        }  
+        else if (rate==100000000)  
+        {  
+            oled_show_string(0, 3, "  _  ");  
+        }  
+        else if (rate==10000000)  
+        {  
+            oled_show_string(0, 3, "   _  ");  
+        }  
+        else if (rate==1000000)  
+        {  
+            oled_show_string(0, 3, "    _  ");  
+        }  
+        else if (rate==100000)  
+        {  
+            oled_show_string(0, 3, "     _  ");  
+        }  
+        else if (rate==10000)  
+        {  
+            oled_show_string(0, 3, "      _  ");  
+        }  
+        else if (rate==1000)  
+        {  
+            oled_show_string(0, 3, "       _  ");  
+        }  
+        else if (rate==100)  
+        {  
+            oled_show_string(0, 3, "        _  ");  
+        }  
+        else if (rate==10)  
+        {  
+            oled_show_string(0, 3, "         _ ");  
+        }  
+        else if (rate==1)  
+        {  
+            oled_show_string(0, 3, "          _");  
+        }  
+    }  
+    else if(type==2)//浮点显示  
+    {  
+        float data=(float)cc->data/100;  
+        oled_show_float(0, 2, data, 4, 3);//SmartCar_OLED_Printf6x8(0, 2, "%10f", data);  
+        if (rate==10000)  
+        {  
+            oled_show_string(0, 3, "_  ");  
+        }  
+        else if (rate==1000)  
+        {  
+            oled_show_string(0, 3, " _  ");  
+        }  
+        else if (rate==100)  
+        {  
+            oled_show_string(0, 3, "  _  ");  
+        }  
+        else if (rate==10)  
+        {  
+            oled_show_string(0, 3, "    _ ");  
+        }  
+        else  
+        {  
+            oled_show_string(0, 3, "     _");  
+        }  
+    }  
+}  
+  
+void change(int type,menu* qq)//参数按位调参  
+{  
+    int toch;  
+    int i;  
+    for (i=0;i<100;i++)//每次都要改  
+    {  
+        if (strcmp(qq->name,data_name[i])==0)  
+        {  
+            toch=i;  
+            break;  
+        }  
+    }  
+    int rate=1;//调参分度值  
+    int dxx;  
+    if (type==1)//整形调参  
+    {  
+        print_data(qq,rate,1);  
+        while (dxx=get())  
+        {  
+            system_delay_ms(200);  
+            switch(dxx)  
+            {  
+                case 3://左移  
+                    if (rate==1)  
+                    {  
+                        break;  
+                    }  
+                    rate=rate/10;  
+                    print_data(qq,rate,1);  
+                    break;  
+                case 4://右移  
+                    if (rate==10000000000)  
+                    {  
+                        break;  
+                    }  
+                    rate=rate*10;  
+                    print_data(qq,rate,1);  
+                    break;  
+                case 1://上调  
+                    if (qq->data-rate<0)  
+                        break;  
+                    qq->data=qq->data-rate;  
+                    data_small[toch]=qq->data;  
+                    print_data(qq,rate,1);  
+                    break;  
+                case 2://下调  
+                    qq->data=qq->data+rate;  
+                    data_small[toch]=qq->data;  
+                    print_data(qq,rate,1);  
+                    break;  
+                case 5:  
+                {  
+                    data_small[toch]=qq->data;  
+                    return ;  
+                }  
+                default://否则无操作  
+                    ;  
+            }  
+        }  
+    }  
+    else if(type==2)//浮点数调参  
+    {  
+        print_data(qq,rate,2);  
+        while (dxx=get())  
+        {  
+  
+            switch(dxx)  
+            {  
+                case 3:  
+                    if (rate==1)  
+                    {  
+                        break;  
+                    }  
+                    rate=rate/10;  
+                    print_data(qq,rate,2);  
+                    break;  
+                case 4:  
+                    if (rate==100000)  
+                    {  
+                        break;  
+                    }  
+                    rate=rate*10;  
+                    print_data(qq,rate,2);  
+                    break;  
+                case 1:  
+                    qq->data=qq->data-rate;  
+                    data_small[toch]=qq->data;  
+                    print_data(qq,rate,2);  
+                    break;  
+                case 2:  
+                    qq->data=qq->data+rate;  
+                    data_small[toch]=qq->data;  
+                    print_data(qq,rate,2);  
+                    break;  
+                case 5:  
+                {  
+                    data_small[toch]=qq->data;  
+                    return ;  
+                }  
+                default:  
+                    ;  
+            }  
+        }  
+    }  
+}  
+  
+void make_decision(menu* cur)//按中键可操作的函数  
+{  
+    if (strcmp(cur->name,"speed")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[0];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"s_bend_kp")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[1];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"gps_kp")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[2];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"s_bend_kd")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[3];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"gps_kd")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[4];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"gps_distance")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[5];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"start_angle")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[6];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"cycle")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[7];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"s_bend")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[8];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"Front")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[9];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"servo_kp")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[10];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"gps_start")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[11];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"gps_end")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[12];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"servo_kd")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[13];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"count_num")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[14];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"shift_speed")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[15];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"whirl_speed")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[16];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"s_bend_speed")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[17];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"coefficient")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[18];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"highThr")==0)  
+    {  
+        change(cur->type,cur);  
+        cur->data=data_small[19];  
+        print(cur);  
+    }  
+    else if (strcmp(cur->name,"GPS_print")==0)  
+    {  
+        oled_clear();  
+        int l=data_small[11];  
+        for(int m=0;m<8;m++)  
+        {  
+            oled_show_int(0,m,GPS_spot[l+m],10);  
+            oled_show_int(60,m,GPS_spot[l+m+150],10);  
+        }  
+        system_delay_ms(1000);  
+    }  
+    else if (strcmp(cur->name,"GPS_delete")==0)  
+    {  
+        oled_clear();  
+        for(int i=data_small[11];i<=data_small[12];i++)  
+        {  
+            GPS_spot[i]=0;  
+            GPS_spot[i+150]=0;  
+        }  
+        oled_show_string(100,7,"nice");  
+        system_delay_ms(200);  
+    }  
+    else if (strcmp(cur->name,"high_write")==0)  
+    {  
+        write(cur);  
+    }  
+    else if (strcmp(cur->name,"medium_write")==0)  
+    {  
+        write(cur);  
+    }  
+    else if (strcmp(cur->name,"low_write")==0)  
+    {  
+        write(cur);  
+    }  
+    else if (strcmp(cur->name,"high_read")==0)  
+    {  
+        read(cur);  
+        renew();  
+    }  
+    else if (strcmp(cur->name,"medium_read")==0)  
+    {  
+        read(cur);  
+        renew();  
+    }  
+    else if (strcmp(cur->name,"low_read")==0)  
+    {  
+        read(cur);  
+        renew();  
+    }  
+    else if (strcmp(cur->name,"Save")==0||strcmp(cur->name,"Save_GPS")==0)  
+    {  
+        for(int h=0;h<100;h++)  
+        {  
+            DAta[h]=data_small[h];  
+            high[h]=HIGH[h];  
+            medium[h]=MEDIUM[h];  
+            low[h]=LOW[h];  
+        }  
+        flash_write();  
+        oled_show_string(0, 7, "nice");//表示存储成功  
